@@ -1,4 +1,4 @@
-package nahabi4.supplement.sqlserver.jdbc;
+package nahabi4.supplement.sqlserver.jdbc.bulkcopy;
 
 import com.microsoft.sqlserver.jdbc.ISQLServerBulkRecord;
 import com.microsoft.sqlserver.jdbc.SQLServerBulkCopy;
@@ -8,18 +8,15 @@ import com.microsoft.sqlserver.jdbc.SQLServerException;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-public class BulkRecordLoader {
+public class BulkCopyManager {
 
-    private boolean useOwnConnection;
     private SQLServerBulkCopy bulkCopy;
 
-    public BulkRecordLoader(String connString) throws SQLException {
-        useOwnConnection = true;
+    public BulkCopyManager(String connString) throws SQLException {
         bulkCopy = new SQLServerBulkCopy(connString);
     }
 
-    public BulkRecordLoader(Connection connection) throws SQLException {
-        useOwnConnection = false;
+    public BulkCopyManager(Connection connection) throws SQLException {
         bulkCopy = new SQLServerBulkCopy(connection);
     }
 
@@ -32,8 +29,6 @@ public class BulkRecordLoader {
     }
 
     public void load(String table, ISQLServerBulkRecord record, String[] destColumnNames) throws SQLServerException {
-        bulkCopy.getBulkCopyOptions().setUseInternalTransaction(useOwnConnection);
-
         bulkCopy.setDestinationTableName(table);
         setColumnMapping(destColumnNames);
         bulkCopy.writeToServer(record);
@@ -45,6 +40,5 @@ public class BulkRecordLoader {
             bulkCopy.addColumnMapping(i+1, columnNames[i]);
         }
     }
-
 
 }
