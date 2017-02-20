@@ -16,9 +16,8 @@ public class MetadataRetriever {
 
                 int columnsCount = rsMd.getColumnCount();
                 columnsMetadata = new ColumnMetadata[columnsCount];
-                for (int i = 0; i < columnsCount; i++) {
-                    ColumnMetadata.Builder builder = new ColumnMetadata.Builder();
-                    builder
+                for (int i = 1; i <= columnsCount; i++) {
+                    columnsMetadata[i] = new ColumnMetadata.Builder()
                             .setColumnLabel(rsMd.getColumnLabel(i))
                             .setColumnName(rsMd.getColumnName(i))
                             .setAutoIncrement(rsMd.isAutoIncrement(i))
@@ -33,9 +32,8 @@ public class MetadataRetriever {
                             .setSearchable(rsMd.isSearchable(i))
                             .setReadOnly(rsMd.isReadOnly(i))
                             .setWritable(rsMd.isWritable(i))
-                            .setDefinitelyWritable(rsMd.isDefinitelyWritable(i));
-
-                    columnsMetadata[i] = builder.build();
+                            .setDefinitelyWritable(rsMd.isDefinitelyWritable(i))
+                            .build();
                 }
             }
         }

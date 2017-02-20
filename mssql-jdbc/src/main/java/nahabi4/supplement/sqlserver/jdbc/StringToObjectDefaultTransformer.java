@@ -1,7 +1,6 @@
 package nahabi4.supplement.sqlserver.jdbc;
 
 
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import nahabi4.supplement.java.sql.ColumnMetadata;
 
 import java.math.BigDecimal;
@@ -12,48 +11,7 @@ import java.text.MessageFormat;
 
 import static java.sql.Types.INTEGER;
 
-public class BulkLoadDataPreparator implements StringToObjectTransformer {
-
-    /* 
-    almost copy-paste from com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord#addColumnMetadataInternal 
-     */
-    public static ColumnMetadata transformMetadata(ColumnMetadata metadata) {
-        ColumnMetadata.Builder metadataBuilder = new ColumnMetadata.Builder(metadata);
-
-        switch (metadata.getColumnType()) {
-             /*
-             * SQL Server supports numerous string literal formats for temporal types, hence sending them as varchar with approximate
-             * precision(length) needed to send supported string literals. string literal formats supported by temporal types are available in MSDN
-             * page on data types.
-             */
-            case Types.DATE:
-            case Types.TIME:
-            case Types.TIMESTAMP:
-            case microsoft.sql.Types.DATETIMEOFFSET:
-                // The precision is just a number long enough to hold all types of temporal data, doesn't need to be exact precision.
-                metadataBuilder.setPrecision(50);
-                break;
-
-            // Redirect SQLXML as LONGNVARCHAR
-            // SQLXML is not valid type in TDS
-            case Types.SQLXML:
-                metadataBuilder.setColumnType(Types.LONGNVARCHAR);
-                break;
-
-            // Redirecting Float as Double based on data type mapping
-            // https://msdn.microsoft.com/en-us/library/ms378878%28v=sql.110%29.aspx
-            case Types.FLOAT:
-                metadataBuilder.setColumnType(Types.DOUBLE);
-                break;
-
-            // redirecting BOOLEAN as BIT
-            case Types.BOOLEAN:
-                metadataBuilder.setColumnType(Types.BIT);
-                break;
-        }
-
-        return metadataBuilder.build();
-    }
+public class StringToObjectDefaultTransformer implements StringToObjectTransformer {
 
     /*
     almost copy-paste from com.microsoft.sqlserver.jdbc.SQLServerBulkCSVFileRecord.getRowData
@@ -61,13 +19,8 @@ public class BulkLoadDataPreparator implements StringToObjectTransformer {
     @Override
     public Object transform(String value, ColumnMetadata metadata) {
         Object result;
-        ColumnMetadata preparedMetadata = transformMetadata(metadata);
 
-        switch (preparedMetadata.getColumnType()) {
-            /*
-             * Both BCP and BULK INSERT considers double quotes as part of the data and throws error if any data (say "10") is to be
-             * inserted into an numeric column. Our implementation does the same.
-             */
+        switch (metadata.getColumnType()) {
             case INTEGER: {
                 // Formatter to remove the decimal part as SQL Server floors the decimal in integer types
                 DecimalFormat decimalFormatter = new DecimalFormat("#");
@@ -90,11 +43,9 @@ public class BulkLoadDataPreparator implements StringToObjectTransformer {
                 try {
                     result = bd.setScale(0, BigDecimal.ROUND_DOWN).longValueExact();
                 } catch (ArithmeticException ex) {
-                    String msgValue = "'" + value + "'";
-                    String msgType = metadata.getColumnTypeName();
-                    MessageFormat form = new MessageFormat("An error occurred while converting the {0} value to JDBC data type {1}.");
-                    String reason = form.format(new Object[] {msgValue, msgType});
-                    throw new RuntimeException(reason, ex);
+                    MessageFormat form = new MessageFormat("An error occurred while converting the '{0}' value to JDBC data type {1}.");
+                    String reason = form.format(new Object[] {value, metadata.getColumnTypeName()});
+                    throw new NumberFormatException(reason);
                 }
                 break;
             }
@@ -102,7 +53,7 @@ public class BulkLoadDataPreparator implements StringToObjectTransformer {
             case Types.DECIMAL:
             case Types.NUMERIC: {
                 BigDecimal bd = new BigDecimal(value.trim());
-                result = bd.setScale(preparedMetadata.getScale(), RoundingMode.HALF_UP);
+                result = bd.setScale(metadata.getScale(), RoundingMode.HALF_UP);
                 break;
             }
 

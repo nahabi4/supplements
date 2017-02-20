@@ -5,20 +5,20 @@ import nahabi4.supplement.java.sql.ColumnMetadata;
 
 public class StringArraysBulkRecordSet extends ArraysBulkRecordSet {
 
-    private StringToObjectTransformer transformer;
+    protected StringToObjectTransformer transformer;
 
-    public StringArraysBulkRecordSet(ColumnMetadata[] columnMetadata, String[][] data, StringToObjectTransformer transformer) {
-        super(columnMetadata, data);
+    public StringArraysBulkRecordSet(String[][] data, ColumnMetadata[] columnMetadata, StringToObjectTransformer transformer) {
+        super(data, columnMetadata);
         this.transformer = transformer;
     }
 
     @Override
     public Object[] getRowData() throws SQLServerException {
-        Object[] sourceData = super.getRowData();
-        Object[] resultData = new String[sourceData.length];
+        String[] sourceData = (String[]) super.getRowData();
+        Object[] resultData = new Object[sourceData.length];
 
         for(int i=0; i < sourceData.length; i++){
-            resultData[i] = transformer.transform((String) sourceData[i], columnMetadata[i]);
+            resultData[i] = transformer.transform(sourceData[i], columnMetadata[i]);
         }
 
         return resultData;
